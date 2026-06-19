@@ -1,3 +1,15 @@
+terraform {
+  required_version = ">= 1.0" # Pon la versión que uses
+
+  backend "s3" {
+    bucket         = "knoppix50-19062026-terraform-state" # El nombre que creaste
+    key            = "terraform/state.tfstate"
+    region         = "us-east-1"
+    encrypt        = true
+  }
+}
+
+
 # Specify the provider and access details
 
 provider "aws" {
