@@ -1,10 +1,16 @@
 name: 'Terraform'
+
 on:
   workflow_dispatch:
-#  push:
-#    branches:
-#      - main
-#  pull_request:
+    inputs:
+      action:
+        description: 'Selecciona la acción de Terraform que deseas ejecutar'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
 
 jobs:
   terraform:
@@ -13,18 +19,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{secrets.AWS_SESSION_TOKEN}}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Initialize
         run: terraform init
@@ -32,13 +38,23 @@ jobs:
       - name: Terraform Validate
         run: terraform validate 
 
+      # Este paso siempre te mostrará qué va a pasar según tu elección
       - name: Terraform Plan
-        run: terraform plan 
-        continue-on-error: true
+        run: |
+          if [ "${{ github.event.inputs.action }}" == "destroy" ]; then
+            terraform plan -destroy
+          else
+            terraform plan
+          fi
 
+      # Se ejecuta SOLO si elegiste 'apply' en el menú
       - name: Terraform Apply
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.event.inputs.action == 'apply'
         run: terraform apply -auto-approve
 
+      # Se ejecuta SOLO si elegiste 'destroy' en el menú
       - name: Terraform Destroy
-        run:  terraform plan -destroy
+        if: github.event.inputs.action == 'destroy'
+        run: terraform destroy -auto-approve
+
+
